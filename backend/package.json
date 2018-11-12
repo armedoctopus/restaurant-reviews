@@ -1,0 +1,17 @@
+{
+  "name": "restaurant-reviews-backend",
+  "version": "1.0.0",
+  "description": "The backend resources for Restaurant Reviews",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Adrian Hall <photoadrian@outlook.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "aws-amplify-serverless-plugin": "^0.2.1",
+    "serverless": "^1.32.0",
+    "serverless-appsync-plugin": "^1.0.7",
+    "serverless-cf-vars": "^0.3.0"
+  }
+}

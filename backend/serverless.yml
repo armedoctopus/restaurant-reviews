@@ -1,0 +1,94 @@
+service: RestaurantReviews
+
+plugins:
+  modules:
+    - serverless-cf-vars
+    - serverless-appsync-plugin
+    - aws-amplify-serverless-plugin
+
+provider:
+  name: aws
+  region: ${opt:region, "us-east-1"}
+  runtime: nodejs8.10
+  stage: ${opt:stage, "dev"}
+
+  environmen:
+    GRAPHQL_API: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ]}
+
+custom:
+  api: ${self:provider.stage}${self:service}
+
+resources:
+  Resources:
+    # -------------------------------------------------------------------------
+    # BEGIN: AUTHENTICATION
+    # -------------------------------------------------------------------------
+    CognitoUserPoolUsers:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.api}
+        Schema:
+          - Name: email
+            Required: true
+            Mutable: true
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+            RequireLowercase: false
+            RequireUppercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+        AutoVerifiedAttributes: [ "email" ]
+        MfaConfiguration: OFF
+    AndroidUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.api}-android
+        GenerateSecret: true
+        UserPoolId: { Ref: CognitoUserPoolUsers }
+    AuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.api}-auth
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                ForAnyValue:StringLike:
+                  "cognito-identity.amazon.com:amr": "authenticated"
+    UnAuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.api}-unauth
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                ForAnyValue:StringLike:
+                  "cognito-identity.amazon.com:amr": "unauthenticated"
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: ${self:custom.api}
+        AllowUnauthenticatedIdentities: true
+        CognitoIdentityProviders:
+          - ClientId: { Ref: AndroidUserPoolClient }
+            ProviderName: { Fn::Sub: [ 'cognito-idp.${self:provider.region}.amazonaws.com/#{client}', { "client": { Ref: CognitoUserPoolUsers }}]}
+    IdentityPoolRoleMap:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId: { Ref: IdentityPool }
+        Roles:
+          unauthenticated: { Fn::GetAtt: [ UnAuthRole, Arn ]}
+          authenticated: { Fn::GetAtt: [ AuthRole, Arn ]}
+    # -------------------------------------------------------------------------
+    # END: AUTHENTICATION
+    # -------------------------------------------------------------------------

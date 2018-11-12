@@ -1,0 +1,84 @@
+type User {
+    id: ID!
+    name: String
+    locations(limit: Number, nextToken: String): LocationConnection
+    reviews(limit: Number, nextToken: String): ReviewConnection
+    favorites(limit: Number, nextToken: String): LocationConnection
+}
+
+type Location {
+    id: ID!
+    owner: User
+    longitude: Number
+    latitude: Number
+    street: String!
+    city: String!
+    state: String!
+    country: String!
+    phone: String
+    email: String
+    favoriteCount: Number
+    averageRating: Number
+}
+
+type LocationConnection {
+    items: [Location]
+    nextToken: String
+}
+
+input LocationInput {
+    longitude: Number
+    latitude: Number
+    street: String!
+    city: String!
+    state: String!
+    country: String!
+    phone: String
+    email: String
+}
+
+type Review {
+    id: ID!
+    user: User
+    location: Location
+    content: String
+    rating: Number
+}
+
+type ReviewConnection {
+    items: [Review]
+    nextToken: String
+}
+
+input ReviewInput {
+    locationId: ID!
+    content: String
+    rating: Number
+}
+
+type Query {
+    me: User
+}
+
+type Mutation {
+    addLocation(input: LocationInput): Location
+    addReview(input: ReviewInput): Review
+    addFavorite(locationId: ID!): Location
+}
+
+type Subscription {
+    locations: Location
+    @aws_subscribe(mutations: [ "addLocation". "addReview", "addFavorite" ])
+    reviews(locationId: ID!): Review
+    @aws_subscribe(mutations: [ "addReview" ])
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
+
+
+
+}
