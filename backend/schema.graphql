@@ -1,5 +1,5 @@
 input PagingRequest {
-    limit: Number
+    limit: Int
     nextToken: String
 }
 
@@ -12,8 +12,13 @@ type User {
 }
 
 type GPS {
-    longitude: Number
-    latitude: Number
+    longitude: Float
+    latitude: Float
+}
+
+input GPSInput {
+    longitude: Float
+    latitude: Float
 }
 
 type Address {
@@ -31,8 +36,8 @@ type Location {
     address: Address
     phone: String
     email: String
-    favoriteCount: Number
-    averageRating: Number
+    favoriteCount: Int
+    averageRating: Float
     reviews(paging: PagingRequest): ReviewPagingConnection
 }
 
@@ -41,7 +46,7 @@ type Review {
     user: User!
     location: Location!
     content: String
-    rating: Number
+    rating: Int
 }
 
 type UserPagingConnection {
@@ -60,8 +65,8 @@ type ReviewPagingConnection {
 }
 
 input GPSQueryInput {
-    gps: GPS
-    radius: Number
+    gps: GPSInput
+    radius: Float
 }
 
 input AddressInput {
@@ -80,7 +85,7 @@ input LocationInput {
 
 input ReviewInput {
     content: String
-    rating: Number
+    rating: Int
 }
 
 type Query {
@@ -95,9 +100,9 @@ type Mutation {
 }
 
 type Subscription {
-    location(locationId: ID!): Location
+    updateLocation(locationId: ID!): Location
     @aws_subscribe(mutations: [ "addReview", "markFavorite" ])
-    reviews(locationId: ID!): Review
+    addReviewForLocation(locationId: ID!): Review
     @aws_subscribe(mutations: [ "addReview" ])
 }
 

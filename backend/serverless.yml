@@ -4,7 +4,6 @@ plugins:
   modules:
     - serverless-cf-vars
     - serverless-appsync-plugin
-    - aws-amplify-serverless-plugin
 
 provider:
   name: aws
@@ -12,78 +11,8 @@ provider:
   runtime: nodejs8.10
   stage: ${opt:stage, "dev"}
 
-  environmen:
-    GRAPHQL_API: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ]}
-
 custom:
   api: ${self:provider.stage}${self:service}
-
-  appSync:
-    authenticatioNType: AWS_IAM
-    logConfig:
-      loggingRoleArn: { Fn::GetAtt: [ AppSyncLoggingServiceRole, Arn ]}
-      level: ALL
-    mappingTemplateLocation: mapping-templates
-    schema: schema.graphql
-    mappingTemplates:
-      - field: locations
-        type: User
-        dataSource: NoSQL
-        request: User-locations-request.vtl
-        response: User-locations-response.vtl
-      - field: favorites
-        type: User
-        dataSource: NoSQL
-        request: User-favorites-request.vtl
-        response: User-favorites-response.vtl
-      - field: reviews
-        type: User
-        dataSource: NoSQL
-        request: User-reviews-request.vtl
-        response: User-reviews-response.vtl
-      - field: me
-        type: Query
-        dataSource: NoSQL
-        request: Query-me-request.vtl
-        response: Query-me-response.vtl
-      - field: findLocation
-        type: Query
-        dataSource: NoSQL
-        request: Query-findLocation-request.vtl
-        response: Query-findLocation-response.vtl
-      - field: addLocation
-        type: Mutation
-        dataSource: NoSQL
-        request: Query-addLocation-request.vtl
-        response: Query-addLocation-response.vtl
-      - field: addReview
-        type: Mutation
-        dataSource: NoSQL
-        request: Query-addReview-request.vtl
-        response: Query-addReview-response.vtl
-      - field: markFavorite
-        type: Mutation
-        dataSource: NoSQL
-        request: Query-markFavorite-request.vtl
-        response: Query-markFavorite-response.vtl
-    dataSources:
-      - name: NoSQL
-        type: AMAZON_DYNAMODB
-        config:
-          tableName: { Ref: DataTable }
-          iamRoleStatements:
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:PutItem
-                - dynamodb:UpdateItem
-                - dynamodb:Query
-                - dynamodb:Scan
-              Resource:
-                Fn::Join:
-                  - ""
-                  - - "Ref": "DataTable"
-                    - "*"
 
 resources:
   Resources:
@@ -173,25 +102,4 @@ resources:
     # -------------------------------------------------------------------------
     # END: AUTHENTICATION
     # -------------------------------------------------------------------------
-
-    # -------------------------------------------------------------------------
-    # BEGIN: DATA STORES
-    # -------------------------------------------------------------------------
-    DataTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.api}-data
-        AttributeDefinitions:
-          - AttributeName: "id"
-            AttributeType: "S"
-          - AttributeName: "type"
-            AttributeType: "S"
-        KeySchema:
-          - AttributeName: "id"
-            KeyType: "HASH"
-          - AttributeName: "type"
-            KeyType: "RANGE"
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
 
