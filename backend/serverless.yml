@@ -11,8 +11,39 @@ provider:
   runtime: nodejs8.10
   stage: ${opt:stage, "dev"}
 
+
+functions:
+  dynamodb_stream:
+    handler: elasticsearch.lambda_handler
+    name: ${self:custom.api}-dynamodb_stream_handler
+    description: Stream data from DynamoDB to ElasticSearch
+    runtime: python3.6
+    memorySize: 128
+    role: ElasticSearchStreamingLambdaIAMRole
+    environment:
+      ES_ENDPOINT: { Fn::GetAtt: [ ElasticSearchDomain, DomainEndpoint ]}
+      DEBUG: 1
+    events:
+      - stream:
+          type: dynamodb
+          arn: { Fn::GetAtt: [ DynamoDBTable, StreamArn ]}
+
 custom:
-  api: ${self:provider.stage}${self:service}
+  # The base name of the API for resource generation - can't include dashes
+  # [a-zA-Z0-9]+ only
+  api: ${self:provider.stage}RestaurantReviews
+  # ES Domain, must match [a-z][a-z0-9\-]+
+  es_domain: ${self:provider.stage}-restaurant-reviews
+  # The number of instances to launch into the ElasticSearch domain
+  es_instanceCount: 1
+  # The type of instance to launch into the ElasticSearch domain
+  es_instanceType: "t2.small.elasticsearch"
+  # The size in GB of the EBS volumes that contain the data
+  es_ebsVolumeGB: 20
+  # The number of read IOPS the DynamoDB table should support.
+  ddb_readIOPS: 5
+  # The number of write IOPS the DynamoDB table should support.
+  ddb_writeIOPS: 5
 
 resources:
   Resources:
@@ -103,3 +134,88 @@ resources:
     # END: AUTHENTICATION
     # -------------------------------------------------------------------------
 
+    # -------------------------------------------------------------------------
+    # BEGIN: DATA STORAGE
+    # -------------------------------------------------------------------------
+    DynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.api}
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: typeName
+            KeyType: RANGE
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: typeName
+            AttributeType: S
+        ProvisionedThroughput:
+          ReadCapacityUnits: ${self:custom.ddb_readIOPS}
+          WriteCapacityUnits: ${self:custom.ddb_writeIOPS}
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    ElasticSearchDomain:
+      Type: AWS::Elasticsearch::Domain
+      Properties:
+        DomainName: ${self:custom.es_domain}
+        ElasticsearchVersion: "6.2"
+        ElasticsearchClusterConfig:
+          ZoneAwarenessEnabled: false
+          InstanceCount: ${self:custom.es_instanceCount}
+          InstanceType: ${self:custom.es_instanceType}
+        EBSOptions:
+          EBSEnabled: true
+          VolumeType: "gp2"
+          VolumeSize: ${self:custom.es_ebsVolumeGB}
+
+    ElasticSearchStreamingLambdaIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.api}-ESStreamingLambdaRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "lambda.amazonaws.com"
+              Action: "sts:AssumeRole"
+        Policies:
+          - PolicyName: ElasticSearchAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "es:ESHttpPost"
+                  Effect: Allow
+                  Resource:
+                    - "arn:aws:es:#{AWS::Region}:#{AWS::AccountId}:domain/${self:custom.es_domain}/_bulk"
+          - PolicyName: DynamoDBStreamAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "dynamodb:DescribeStream"
+                    - "dynamodb:GetRecords"
+                    - "dynamodb:GetShardIterator"
+                    - "dynamodb:ListStreams"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::GetAtt: [ DynamoDBTable, StreamArn ]}
+          - PolicyName: CloudWatchLogsAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Effect: Allow
+                  Resource:
+                    - "arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:*"
+
+    # -------------------------------------------------------------------------
+    # END: DATA STORAGE
+    # -------------------------------------------------------------------------
