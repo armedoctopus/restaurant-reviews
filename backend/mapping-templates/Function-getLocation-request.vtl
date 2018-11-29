@@ -1,0 +1,7 @@
+{
+    "operation": "GetItem",
+    "key": {
+        "id": $util.dynamodb.toDynamoDBJson($ctx.stash.get("locationId")),
+        "typeName": $util.dynamodb.toDynamoDBJson("LOCATION")
+    }
+}

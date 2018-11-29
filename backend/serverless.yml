@@ -11,7 +11,6 @@ provider:
   runtime: nodejs8.10
   stage: ${opt:stage, "dev"}
 
-
 functions:
   dynamodb_stream:
     handler: elasticsearch.lambda_handler
@@ -44,6 +43,66 @@ custom:
   ddb_readIOPS: 5
   # The number of write IOPS the DynamoDB table should support.
   ddb_writeIOPS: 5
+
+  # AWS AppSync GraphQL configuration
+  appSync:
+    name: ${self:custom.api}
+    authenticationType: AWS_IAM
+    logConfig:
+      loggingRoleArn: { Fn::GetAtt: [ AppSyncLoggingServiceRole, Arn ]}
+      level: ALL
+    schema: ./schema.graphql
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: DynamoDB
+        config:
+          tableName: { Ref: DynamoDBTable }
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - "dynamodb:PutItem"
+                - "dynamodb:GetItem"
+              Resource:
+                - { Fn::GetAtt: [ DynamoDBTable, Arn ]}
+                - { Fn::Join: [ "/", [{ Fn::GetAtt: [ DynamoDBTable, Arn ]}, "*" ]]}
+      - type: AMAZON_ELASTICSEARCH
+        name: ElasticSearch
+        config:
+          endpoint: { Fn::Join: [ "", [ "https://", { Fn::GetAtt: [ ElasticSearchDomain, DomainEndpoint ]} ]]}
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - "es:ESHttpGet"
+              Resource:
+                - { Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}
+    mappingTemplates:
+      - type: Mutation
+        field: addLocation
+        dataSource: DynamoDB
+        request: Mutation-addLocation-request.vtl
+        response: common-response.vtl
+      - type: Mutation
+        field: addReview
+        dataSource: DynamoDB
+        request: Mutation-addReview-request.vtl
+        response: common-response.vtl
+      - type: Mutation
+        field: markFavorite
+        request: Mutation-markFavorite-request.vtl
+        response: common-response.vtl
+        kind: PIPELINE
+        functions:
+          - getLocation
+          - storeFavorite
+    functionConfigurations:
+      - dataSource: DynamoDB
+        name: getLocation
+        request: Function-getLocation-request.vtl
+        response: Function-getLocation-response.vtl
+      - dataSource: DynamoDB
+        name: storeFavorite
+        request: Function-storeFavorite-request.vtl
+        response: Function-storeFavorite-response.vtl
 
 resources:
   Resources:
@@ -96,8 +155,18 @@ resources:
               Condition:
                 ForAnyValue:StringLike:
                   "cognito-identity.amazon.com:amr": "authenticated"
+        Policies:
+          - PolicyName: AllowAuthenticatedAppSyncAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "appsync:GraphQL"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::Join: [ "/", [ { Fn::GetAtt: [ GraphQlApi, Arn ]}, "*" ]]}
 
-    UnAuthRole:
+    UnauthRole:
       Type: AWS::IAM::Role
       Properties:
         RoleName: ${self:custom.api}-unauth
@@ -111,6 +180,16 @@ resources:
               Condition:
                 ForAnyValue:StringLike:
                   "cognito-identity.amazon.com:amr": "unauthenticated"
+        Policies:
+          - PolicyName: AllowUnauthenticatedAppSyncQueries
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "appsync:GraphQL"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::Join: [ "/", [ { Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Query/*" ]]}
 
     IdentityPool:
       Type: AWS::Cognito::IdentityPool
@@ -128,8 +207,9 @@ resources:
       Properties:
         IdentityPoolId: { Ref: IdentityPool }
         Roles:
-          unauthenticated: { Fn::GetAtt: [ UnAuthRole, Arn ]}
+          unauthenticated: { Fn::GetAtt: [ UnauthRole, Arn ]}
           authenticated: { Fn::GetAtt: [ AuthRole, Arn ]}
+
     # -------------------------------------------------------------------------
     # END: AUTHENTICATION
     # -------------------------------------------------------------------------
@@ -170,6 +250,14 @@ resources:
           EBSEnabled: true
           VolumeType: "gp2"
           VolumeSize: ${self:custom.es_ebsVolumeGB}
+
+    # -------------------------------------------------------------------------
+    # END: DATA STORAGE
+    # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # BEGIN: PERMISSIONS
+    # -------------------------------------------------------------------------
 
     ElasticSearchStreamingLambdaIAMRole:
       Type: AWS::IAM::Role
@@ -216,6 +304,30 @@ resources:
                   Resource:
                     - "arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:*"
 
+    AppSyncLoggingServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.api}-AppSyncLoggingServiceRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "lambda.amazonaws.com"
+              Action: "sts:AssumeRole"
+        Policies:
+          - PolicyName: CloudWatchLogsAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Effect: Allow
+                  Resource:
+                    - "arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:*"
+
     # -------------------------------------------------------------------------
-    # END: DATA STORAGE
+    # END: PERMISSIONS
     # -------------------------------------------------------------------------

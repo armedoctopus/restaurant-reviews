@@ -1,0 +1,12 @@
+#set($id = $ctx.stash.get("locationId")+"-"+$context.stash.get("owner"))
+{
+    "operation": "PutItem",
+    "key": {
+        "id": $util.dynamodb.toDynamoDBJson($id),
+        "typeName": $util.dynamodb.toDynamoDBJson("FAVORITE")
+    },
+    "attributeValues": {
+    	"owner": $util.dynamodb.toDynamoDBJson($context.stash.get("owner")),
+        "locationId": $util.dynamodb.toDynamoDBJson($context.stash.get("locationId"))
+    }
+}

@@ -11,7 +11,7 @@
   "devDependencies": {
     "aws-amplify-serverless-plugin": "^0.2.1",
     "serverless": "^1.32.0",
-    "serverless-appsync-plugin": "^1.0.7",
+    "serverless-appsync-plugin": "^1.0.9",
     "serverless-cf-vars": "^0.3.0"
   }
 }

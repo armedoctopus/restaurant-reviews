@@ -1,0 +1,11 @@
+$util.qr($context.args.location.put("owner", $context.identity.username))
+$util.qr($context.args.location.put("lastUpdated", $util.time.nowISO8601()))
+{
+    "version": "2017-02-28",
+    "operation": "PutItem",
+    "key": {
+        "id": $util.dynamodb.toDynamoDBJson($util.autoId()),
+        "typeName": $util.dynamodb.toDynamoDBJson("LOCATION")
+    },
+    "attributeValues": $util.dynamodb.toMapValuesJson($context.args.location)
+}

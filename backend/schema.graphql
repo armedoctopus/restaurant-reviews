@@ -17,8 +17,8 @@ type GPS {
 }
 
 input GPSInput {
-    longitude: Float
-    latitude: Float
+    longitude: Float!
+    latitude: Float!
 }
 
 type Address {
@@ -65,8 +65,8 @@ type ReviewPagingConnection {
 }
 
 input GPSQueryInput {
-    gps: GPSInput
-    radius: Float
+    gps: GPSInput!
+    radius: Float!
 }
 
 input AddressInput {
@@ -77,7 +77,8 @@ input AddressInput {
 }
 
 input LocationInput {
-    name: String
+    name: String!
+    gps: GPSInput
     address: AddressInput
     phone: String
     email: String
@@ -94,14 +95,14 @@ type Query {
 }
 
 type Mutation {
-    addLocation(location: LocationInput): Location
-    addReview(locationId: ID!, review: ReviewInput): Review
+    addLocation(location: LocationInput!): Location
+    addReview(locationId: ID!, review: ReviewInput!): Review
     markFavorite(locationId: ID!): Location
 }
 
 type Subscription {
     updateLocation(locationId: ID!): Location
-    @aws_subscribe(mutations: [ "addReview", "markFavorite" ])
+    @aws_subscribe(mutations: [ "markFavorite" ])
     addReviewForLocation(locationId: ID!): Review
     @aws_subscribe(mutations: [ "addReview" ])
 }
