@@ -12,13 +12,13 @@ type User {
 }
 
 type GPS {
-    longitude: Float
-    latitude: Float
+    lon: Float
+    lat: Float
 }
 
 input GPSInput {
-    longitude: Float!
-    latitude: Float!
+    lon: Float!
+    lat: Float!
 }
 
 type Address {
@@ -91,6 +91,7 @@ input ReviewInput {
 
 type Query {
     me: User!
+    getLocation(locationId: ID!): Location
     findLocation(byGPS: GPSQueryInput, byAddress: AddressInput): LocationPagingConnection
 }
 

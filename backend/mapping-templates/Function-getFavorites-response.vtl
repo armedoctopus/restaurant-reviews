@@ -1,0 +1,12 @@
+#if($ctx.error)
+    $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+#set($idList = [])
+#foreach($item in $context.result.items)
+$util.qr($idList.add($item.locationId))
+#end
+#set($result = {})
+$util.qr($result.put("ids", $idList))
+$util.qr($result.put("nextToken", $ctx.result.nextToken))
+$util.toJson($result)

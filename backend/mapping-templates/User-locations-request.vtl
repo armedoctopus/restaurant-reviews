@@ -1,0 +1,21 @@
+{
+    "version" : "2018-05-29",
+    "operation" : "Query",
+    "query" : {
+        "expression": "typeName = :typeName",
+        "expressionValues" : {
+            ":typeName" : $util.dynamodb.toDynamoDBJson("LOCATION"),
+        }
+    },
+    "filter": {
+     	"expression": "#owner = :owner",
+        "expressionNames": {
+          	"#owner": "owner"
+        },
+        "expressionValues": {
+          	":owner": $util.dynamodb.toDynamoDBJson($context.identity.username)
+        }
+    },
+    "limit": $util.defaultIfNull(${ctx.args.limit}, 20),
+    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
+}

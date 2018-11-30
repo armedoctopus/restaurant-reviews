@@ -1,0 +1,17 @@
+{
+  "version":"2017-02-28",
+  "operation":"GET",
+  "path":"/_count",
+  "params":{
+    "body": {
+      "query": {
+        "bool": {
+          "must": [
+            { "match": { "typeName": "FAVORITE" } },
+            { "match": { "locationId": "$context.source.id" } }
+          ]
+        }
+      }
+    }
+  }
+}

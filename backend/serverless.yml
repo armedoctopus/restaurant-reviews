@@ -62,6 +62,8 @@ custom:
               Action:
                 - "dynamodb:PutItem"
                 - "dynamodb:GetItem"
+                - "dynamodb:Query"
+                - "dynamodb:BatchGetItem"
               Resource:
                 - { Fn::GetAtt: [ DynamoDBTable, Arn ]}
                 - { Fn::Join: [ "/", [{ Fn::GetAtt: [ DynamoDBTable, Arn ]}, "*" ]]}
@@ -74,7 +76,7 @@ custom:
               Action:
                 - "es:ESHttpGet"
               Resource:
-                - { Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}
+                - { Fn::Join: [ "", [ { Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}, "/*" ]]}
     mappingTemplates:
       - type: Mutation
         field: addLocation
@@ -94,6 +96,59 @@ custom:
         functions:
           - getLocation
           - storeFavorite
+      - type: Query
+        field: me
+        dataSource: DynamoDB
+        request: Query-me-request.vtl
+        response: Query-me-response.vtl
+      - type: Query
+        field: getLocation
+        dataSource: DynamoDB
+        request: Query-getLocation-request.vtl
+        response: common-response.vtl
+      - type: Location
+        field: averageRating
+        dataSource: ElasticSearch
+        request: Location-averageRating-request.vtl
+        response: Location-averageRating-response.vtl
+      - type: Location
+        field: favoriteCount
+        dataSource: ElasticSearch
+        request: Location-favoriteCount-request.vtl
+        response: Location-favoriteCount-response.vtl
+      - type: Location
+        field: reviews
+        dataSource: DynamoDB
+        request: Location-reviews-request.vtl
+        response: paginated-list-response.vtl
+      - type: Review
+        field: user
+        dataSource: DynamoDB
+        request: Review-user-request.vtl
+        response: Query-me-response.vtl
+      - type: Review
+        field: location
+        dataSource: DynamoDB
+        request: Review-location-request.vtl
+        response: common-response.vtl
+      - type: User
+        field: locations
+        dataSource: DynamoDB
+        request: User-locations-request.vtl
+        response: paginated-list-response.vtl
+      - type: User
+        field: reviews
+        dataSource: DynamoDB
+        request: User-reviews-request.vtl
+        response: paginated-list-response.vtl
+      - type: User
+        field: favorites
+        request: User-favorites-request.vtl
+        response: common-response.vtl
+        kind: PIPELINE
+        functions:
+          - getFavorites
+          - getLocationForList
     functionConfigurations:
       - dataSource: DynamoDB
         name: getLocation
@@ -103,6 +158,14 @@ custom:
         name: storeFavorite
         request: Function-storeFavorite-request.vtl
         response: Function-storeFavorite-response.vtl
+      - dataSource: DynamoDB
+        name: getFavorites
+        request: Function-getFavorites-request.vtl
+        response: Function-getFavorites-response.vtl
+      - dataSource: DynamoDB
+        name: getLocationForList
+        request: Function-getLocationForList-request.vtl
+        response: Function-getLocationForList-response.vtl
 
 resources:
   Resources:
@@ -222,14 +285,14 @@ resources:
       Properties:
         TableName: ${self:custom.api}
         KeySchema:
-          - AttributeName: id
-            KeyType: HASH
           - AttributeName: typeName
+            KeyType: HASH
+          - AttributeName: id
             KeyType: RANGE
         AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
           - AttributeName: typeName
+            AttributeType: S
+          - AttributeName: id
             AttributeType: S
         ProvisionedThroughput:
           ReadCapacityUnits: ${self:custom.ddb_readIOPS}
@@ -279,7 +342,7 @@ resources:
                     - "es:ESHttpPost"
                   Effect: Allow
                   Resource:
-                    - "arn:aws:es:#{AWS::Region}:#{AWS::AccountId}:domain/${self:custom.es_domain}/_bulk"
+                    - { Fn::Join: [ "", [{ Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}, "/_bulk" ]]}
           - PolicyName: DynamoDBStreamAccess
             PolicyDocument:
               Version: "2012-10-17"
@@ -313,7 +376,7 @@ resources:
           Statement:
             - Effect: Allow
               Principal:
-                Service: "lambda.amazonaws.com"
+                Service: "appsync.amazonaws.com"
               Action: "sts:AssumeRole"
         Policies:
           - PolicyName: CloudWatchLogsAccess

@@ -1,0 +1,24 @@
+{
+    "version" : "2017-02-28",
+    "operation" : "Query",
+    "query" : {
+        "expression": "#typeName = :typeName",
+        "expressionNames": {
+        	"#typeName": "typeName"
+        },
+        "expressionValues" : {
+            ":typeName" : $util.dynamodb.toDynamoDBJson("REVIEW")
+        }
+    },
+    "filter": {
+    	"expression": "#location = :location",
+        "expressionNames": {
+      		"#location": "locationId"
+        },
+        "expressionValues": {
+        	":location": $util.dynamodb.toDynamoDBJson($context.source.id)
+		}
+    },
+    "limit": $util.defaultIfNull(${ctx.args.limit}, 20),
+    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
+}

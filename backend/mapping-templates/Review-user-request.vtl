@@ -1,0 +1,8 @@
+{
+    "version": "2018-05-29",
+    "operation": "GetItem",
+    "key": {
+        "id": $util.dynamodb.toDynamoDBJson($ctx.source.owner),
+        "typeName": $util.dynamodb.toDynamoDBJson("USER")
+    }
+}

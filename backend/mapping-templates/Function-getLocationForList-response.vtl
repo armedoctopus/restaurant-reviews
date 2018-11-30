@@ -1,0 +1,9 @@
+## Raise a GraphQL field error in case of a datasource invocation error
+#if($ctx.error)
+    $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+#set($result = {})
+$util.qr($result.put("nextToken",$ctx.prev.result.nextToken))
+$util.qr($result.put("items", $ctx.result.data.devRestaurantReviews))
+$util.toJson($result)

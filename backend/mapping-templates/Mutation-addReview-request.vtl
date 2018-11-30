@@ -1,6 +1,6 @@
 $util.qr($context.args.review.put("owner", $context.identity.username))
 $util.qr($context.args.review.put("lastUpdated", $util.time.nowISO8601()))
-$util.qr($context.args.review.put("locationId", $util.args.locationId))
+$util.qr($context.args.review.put("locationId", $context.args.locationId))
 {
     "version": "2017-02-28",
     "operation": "PutItem",

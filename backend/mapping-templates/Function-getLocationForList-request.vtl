@@ -1,0 +1,17 @@
+#set($keys = [])
+#foreach($id in ${ctx.prev.result.ids})
+	#set($key = {})
+    $util.qr($key.put("typeName", $util.dynamodb.toString("LOCATION")))
+    $util.qr($key.put("id", $util.dynamodb.toString($id)))
+    $util.qr($keys.add($key))
+#end
+
+{
+	"version": "2018-05-29",
+    "operation" : "BatchGetItem",
+    "tables" : {
+        "devRestaurantReviews": {
+            "keys": $util.toJson($keys),
+        }
+    }
+}
