@@ -92,7 +92,7 @@ input ReviewInput {
 type Query {
     me: User!
     getLocation(locationId: ID!): Location
-    findLocation(byGPS: GPSQueryInput, byAddress: AddressInput): LocationPagingConnection
+    findLocation(byGPS: GPSQueryInput, byAddress: AddressInput, paging: PagingRequest): LocationPagingConnection
 }
 
 type Mutation {

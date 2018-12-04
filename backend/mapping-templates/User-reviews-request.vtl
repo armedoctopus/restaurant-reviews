@@ -16,6 +16,6 @@
           	":owner": $util.dynamodb.toDynamoDBJson($context.identity.username)
         }
     },
-    "limit": $util.defaultIfNull(${ctx.args.limit}, 20),
-    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
+    "limit": $util.defaultIfNull(${ctx.args.paging.limit}, 20),
+    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.paging.nextToken, null))
 }

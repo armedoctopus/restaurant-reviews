@@ -1,0 +1,44 @@
+#set($query = {
+  "bool": {
+    "must": [
+      { "match": { "typeName": "LOCATION" } }
+  	]
+  }
+})
+
+#if (! $util.isNull($context.args.byGPS ))
+  $util.qr($query.bool.put("filter", {
+  	"geo_distance": {
+      "distance": "${context.args.byGPS.radius}km",
+      "gps": $context.args.byGPS.gps
+    }
+  }))
+#end
+
+#if (! $util.isNull($context.args.byAddress ))
+  #if (! $util.isNull($context.args.byAddress.street ))
+    $util.qr($query.bool.must.add({ "match": { "address.street": "$context.args.byAddress.street" } }))
+  #end
+  #if (! $util.isNull($context.args.byAddress.city ))
+    $util.qr($query.bool.must.add({ "match": { "address.city": "$context.args.byAddress.city" } }))
+  #end
+  #if (! $util.isNull($context.args.byAddress.state ))
+    $util.qr($query.bool.must.add({ "match": { "address.state": "$context.args.byAddress.state" } }))
+  #end
+  #if (! $util.isNull($context.args.byAddress.zipcode ))
+    $util.qr($query.bool.must.add({ "match": { "address.zipcode": "$context.args.byAddress.zipcode" } }))
+  #end
+#end
+
+{
+  "version":"2017-02-28",
+  "operation":"GET",
+  "path":"/_search",
+  "params":{
+    "body": {
+      "from": $util.defaultIfNullOrBlank($ctx.args.paging.nextToken, null),
+      "size": $util.defaultIfNullOrBlank($ctx.args.paging.limit, 20),
+      "query": $util.toJson($query)
+    }
+  }
+}
