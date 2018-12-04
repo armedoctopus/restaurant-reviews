@@ -4,7 +4,8 @@
   "description": "The backend resources for Restaurant Reviews",
   "main": "index.js",
   "scripts": {
-    "deploy": "sls deploy -v"
+    "deploy": "sls deploy -v",
+    "postdeploy": "sls invoke -f postdeployment -v"
   },
   "author": "Adrian Hall <photoadrian@outlook.com>",
   "license": "MIT",

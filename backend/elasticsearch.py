@@ -18,11 +18,9 @@ from boto3.dynamodb.types import TypeDeserializer
 # The following parameters are required to configure the ES cluster
 ES_ENDPOINT = 'https://' + os.environ['ES_ENDPOINT']
 ES_REGION = os.environ['AWS_REGION']
+ES_INDEX = os.environ['ES_INDEX'].lower()   # All ES indices must be lower case
+ES_MAX_RETRIES = 3
 DEBUG = True if os.environ['DEBUG'] is not None else False
-
-# ElasticSearch 6 deprecated having multiple mapping types in an index. Default to doc.
-DOC_TYPE = 'doc'
-ES_MAX_RETRIES = 3              # Max number of retries for exponential backoff
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
@@ -54,6 +52,7 @@ def post_data_to_es(payload, region, creds, host, path, method='POST', proto='ht
     SigV4Auth(creds, 'es', region).add_auth(req)
     http_session = BotocoreHTTPSession()
     res = http_session.send(req.prepare())
+    logger.debug('post_data_to_es: return status code = %d',res.status_code)
     if res.status_code >= 200 and res.status_code <= 299:
         return res._content
     else:
@@ -143,7 +142,6 @@ def _lambda_handler(event, context):
 
         # Compute DynamoDB table, type and index for item
         doc_table = ddb_table_name.lower()
-        doc_type = DOC_TYPE
 
         # Dispatch according to event TYPE
         event_name = record['eventName'].upper()  # INSERT, MODIFY, REMOVE
@@ -188,7 +186,7 @@ def _lambda_handler(event, context):
         if is_ddb_insert_or_update:
             # Generate ES payload for item
             action = {'index': {'_index': doc_table,
-                                '_type': doc_type, '_id': doc_index}}
+                                '_type': 'doc', '_id': doc_index}}
             # Action line with 'index' directive
             es_actions.append(json.dumps(action))
             # Payload line
@@ -197,7 +195,7 @@ def _lambda_handler(event, context):
         # If DynamoDB REMOVE, send 'delete' to ES
         elif is_ddb_delete:
             action = {'delete': {'_index': doc_table,
-                                 '_type': doc_type, '_id': doc_index}}
+                                 '_type': 'doc', '_id': doc_index}}
             # Action line with 'index' directive
             es_actions.append(json.dumps(action))
 
@@ -213,5 +211,57 @@ def _lambda_handler(event, context):
 def lambda_handler(event, context):
     try:
         return _lambda_handler(event, context)
+    except Exception:
+        logger.error(traceback.format_exc())
+
+# The real post-deployment hook
+def _postdeployment_handler(event, context):
+    logger.debug('Event: %s', event)
+
+    # Get aws_region and credentials to post signed URL to ES
+    session = Session({'region': ES_REGION })
+    creds = get_credentials(session)
+    es_url = urlparse(ES_ENDPOINT)
+    # Extract the domain name in ES_ENDPOINT
+    es_endpoint = es_url.netloc or es_url.path
+
+    # GET /<index> should return a 404 - if not, then return.
+    try:
+        logger.debug('GET /%s', ES_INDEX)
+        es_ret_str = post_data_to_es('', ES_REGION, creds, es_endpoint, '/' + ES_INDEX, 'GET')
+        logger.debug('Return from ES: %s', es_ret_str)
+        logger.info('Index already exists - aborting')
+        return 'Completed - Index exists'
+    except ES_Exception as e:
+        if (e.status_code == 404):
+            logger.info('Index %s does not exist - continuing to configuration stage', ES_INDEX)
+        else:
+            raise # re-raise exception
+
+    # PUT /<index> with payload to create the index
+    logger.debug('PUT /%s', ES_INDEX)
+    index_payload = json.dumps({
+        'settings' : {
+            'index' : {
+                'number_of_shards' : 5,
+                'number_of_replicas' : 1
+            }
+        },
+        'mappings': {
+            'doc': {
+                'properties': {
+                    'gps': { 'type': 'geo_point' }
+                }
+            }
+        }
+    })
+    es_ret_str = post_data_to_es(index_payload, ES_REGION, creds, es_endpoint, '/' + ES_INDEX, 'PUT')
+    logger.debug('Return from ES: %s', es_ret_str)
+    return es_ret_str
+
+# Post-deployment hook - ensures that ElasticSearch is appropriately set up
+def postdeployment_handler(event, context):
+    try:
+        return _postdeployment_handler(event, context)
     except Exception:
         logger.error(traceback.format_exc())

@@ -12,7 +12,7 @@ provider:
   stage: ${opt:stage, "dev"}
 
 functions:
-  dynamodb_stream:
+  dynamodbstream:
     handler: elasticsearch.lambda_handler
     name: ${self:custom.api}-dynamodb_stream_handler
     description: Stream data from DynamoDB to ElasticSearch
@@ -21,11 +21,23 @@ functions:
     role: ElasticSearchStreamingLambdaIAMRole
     environment:
       ES_ENDPOINT: { Fn::GetAtt: [ ElasticSearchDomain, DomainEndpoint ]}
+      ES_INDEX: ${self:custom.api}
       DEBUG: 1
     events:
       - stream:
           type: dynamodb
           arn: { Fn::GetAtt: [ DynamoDBTable, StreamArn ]}
+  postdeployment:
+    handler: elasticsearch.postdeployment_handler
+    name: ${self:custom.api}-postdeployment_handler
+    description: Update resources post-deployment
+    runtime: python3.6
+    memorySize: 128
+    role: ElasticSearchStreamingLambdaIAMRole
+    environment:
+      ES_ENDPOINT: { Fn::GetAtt: [ ElasticSearchDomain, DomainEndpoint ]}
+      ES_INDEX: ${self:custom.api}
+      DEBUG: 1
 
 custom:
   # The base name of the API for resource generation - can't include dashes
@@ -345,9 +357,11 @@ resources:
               Statement:
                 - Action:
                     - "es:ESHttpPost"
+                    - "es:ESHttpPut"
+                    - "es:ESHttpGet"
                   Effect: Allow
                   Resource:
-                    - { Fn::Join: [ "", [{ Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}, "/_bulk" ]]}
+                    - { Fn::Join: [ "", [{ Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}, "/*" ]]}
           - PolicyName: DynamoDBStreamAccess
             PolicyDocument:
               Version: "2012-10-17"
