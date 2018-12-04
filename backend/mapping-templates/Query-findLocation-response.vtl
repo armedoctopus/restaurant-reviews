@@ -1,12 +1,19 @@
-#set($result = { items: [] })
+#if (! $util.isNull($context.args.paging))
+  #set($Integer = 0)
+  #set($from = $util.defaultIfNull($Integer.parseInt($context.args.paging.nextToken), 0))
+#else
+  #set($from = 0)
+#end
+
+#set($result = { "items": [] })
 #foreach($entry in $context.result.hits.hits)
   $util.qr($result.items.add($entry.get("_source")))
 #end
 
-#set($first = $util.defaultIfNullOrBlank($context.args.paging.nextToken, 0))
-#set($last = $first + $result.items.size())
+#set($last = $from + $result.items.size())
 #if($context.result.hits.total > $last)
     $util.qr($result.put("nextToken", $last))
 #end
 
 $util.toJson($result)
+
