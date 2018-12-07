@@ -1,9 +1,12 @@
 import { AppLoading, Font } from 'expo';
 import * as React from 'react';
 import { Platform, StatusBar, View } from 'react-native';
-import { createAppContainer } from 'react-navigation';
+import { createAppContainer, createBottomTabNavigator, createStackNavigator, createSwitchNavigator } from 'react-navigation';
 
-import AppNavigator from './navigation/AppNavigator';
+import TabBarIcon from './components/TabBarIcon';
+import NearbyScreen from './screens/NearbyScreen';
+import SearchScreen from './screens/SearchScreen';
+import UserScreen from './screens/UserScreen';
 
 interface IAppProps {
     skipLoadingScreen: boolean;
@@ -12,6 +15,29 @@ interface IAppProps {
 interface IAppState {
     isLoadingComplete: boolean;
 }
+
+interface INavigationOptions {
+    focused: boolean;
+}
+
+function createNavigation(title: string, icon: string, screens: object) {
+    const stack = createStackNavigator(screens);
+    stack.navigationOptions = {
+        tabBarIcon: (options: INavigationOptions) => (
+            <TabBarIcon focused={options.focused} name={Platform.OS === 'ios' ? `ios-${icon}` : `md-${icon}` }/>
+        ),
+        tabBarLabel: title
+    };
+    return stack;
+}
+
+const AppNavigator = createSwitchNavigator({
+    Main: createBottomTabNavigator({
+        HomeStack: createNavigation('Nearby', 'compass', { NearbyScreen }),
+        SearchStack: createNavigation('Search', 'search', { SearchScreen }),
+        UserStack: createNavigation('Me', 'contact', { UserScreen })
+    })
+});
 
 class App extends React.Component<IAppProps,IAppState> {
     public state = {
