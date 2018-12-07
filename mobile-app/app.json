@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile-app",
-    "slug": "mobile-app",
+    "name": "Restaurant Reviews",
+    "slug": "restaurant-reviews",
     "privacy": "public",
     "sdkVersion": "31.0.0",
     "platforms": [
