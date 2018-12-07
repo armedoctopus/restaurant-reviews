@@ -5,7 +5,10 @@
         "tslint-config-standard"
     ],
     "rules": {
+        "indent": [ true, "spaces", 4 ],
         "quotemark": [ true, "single", "jsx-double", "avoid-escape", "avoid-template" ],
-        "semicolon": [ true, "always" ]
+        "semicolon": [ true, "always" ],
+        "space-before-function-paren": [ true, "never" ],
+        "ter-indent": [ true, 4 ]
     }
 }

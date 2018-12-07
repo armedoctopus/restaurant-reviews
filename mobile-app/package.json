@@ -8,14 +8,20 @@
     "lint": "tslint --project ."
   },
   "dependencies": {
+    "@expo/vector-icons": "^8.0.0",
     "expo": "^31.0.2",
     "react": "16.5.0",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz"
+    "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz",
+    "react-navigation": "^3.0.6",
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@babel/core": "^7.2.0",
     "@types/expo": "^31.0.1",
+    "@types/expo__vector-icons": "^6.2.3",
     "@types/react": "^16.7.13",
+    "@types/react-native": "^0.57.18",
+    "@types/react-navigation": "^2.13.7",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.17.0",
     "tslint-config-standard": "^8.0.1",
