@@ -8,6 +8,10 @@ import NearbyScreen from './screens/NearbyScreen';
 import SearchScreen from './screens/SearchScreen';
 import UserScreen from './screens/UserScreen';
 
+// Configure AWS Amplify
+import * as Amplify from './amplify';
+Amplify.configure();
+
 interface IAppProps {
     skipLoadingScreen: boolean;
 }

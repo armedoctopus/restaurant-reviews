@@ -4,6 +4,7 @@ plugins:
   modules:
     - serverless-cf-vars
     - serverless-appsync-plugin
+    - aws-amplify-serverless-plugin
 
 provider:
   name: aws
@@ -55,6 +56,12 @@ custom:
   ddb_readIOPS: 5
   # The number of write IOPS the DynamoDB table should support.
   ddb_writeIOPS: 5
+
+  # AWS Amplify configuration
+  amplify:
+    - filename: ../mobile-app/src/amplify/aws-exports.js
+      type: javascript
+      appClient: ReactNativeUserPoolClient
 
   # AWS AppSync GraphQL configuration
   appSync:
@@ -207,10 +214,10 @@ resources:
         AutoVerifiedAttributes: [ "email" ]
         MfaConfiguration: OFF
 
-    AndroidUserPoolClient:
+    ReactNativeUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
-        ClientName: ${self:custom.api}-android
+        ClientName: ${self:custom.api}-react-native
         GenerateSecret: true
         UserPoolId: { Ref: CognitoUserPoolUsers }
 
@@ -277,7 +284,7 @@ resources:
         IdentityPoolName: ${self:custom.api}
         AllowUnauthenticatedIdentities: true
         CognitoIdentityProviders:
-          - ClientId: { Ref: AndroidUserPoolClient }
+          - ClientId: { Ref: ReactNativeUserPoolClient }
             ProviderName: { Fn::Sub: [ 'cognito-idp.${self:provider.region}.amazonaws.com/#{client}', { "client": { Ref: CognitoUserPoolUsers }}]}
           - ClientId: { Ref: WebUserPoolClient }
             ProviderName: { Fn::Sub: [ 'cognito-idp.${self:provider.region}.amazonaws.com/#{client}', { "client": { Ref: CognitoUserPoolUsers }}]}

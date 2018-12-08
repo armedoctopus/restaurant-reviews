@@ -1,5 +1,9 @@
+import { withAuthenticator } from 'aws-amplify-react-native';
 import * as React from 'react';
-import { Text, View } from 'react-native';
+
+import UserDisplay from './user/UserDisplay';
+
+const AuthenticatedUserDisplay = withAuthenticator(UserDisplay);
 
 class UserScreen extends React.Component {
     public static navigationOptions = {
@@ -8,9 +12,7 @@ class UserScreen extends React.Component {
 
     public render(): React.ReactNode {
         return (
-            <View>
-                <Text>User Screen</Text>
-            </View>
+            <AuthenticatedUserDisplay/>
         );
     }
 }
