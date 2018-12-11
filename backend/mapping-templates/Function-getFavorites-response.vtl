@@ -2,11 +2,23 @@
     $util.error($ctx.error.message, $ctx.error.type)
 #end
 
-#set($idList = [])
-#foreach($item in $context.result.items)
-$util.qr($idList.add($item.locationId))
+#if (! $util.isNull($context.args.paging))
+  #set($Integer = 0)
+  #set($from = $util.defaultIfNull($Integer.parseInt($context.args.paging.nextToken), 0))
+#else
+  #set($from = 0)
 #end
-#set($result = {})
-$util.qr($result.put("ids", $idList))
-$util.qr($result.put("nextToken", $ctx.result.nextToken))
+
+#set($result = { "ids": [] })
+#foreach($entry in $context.result.hits.hits)
+  $util.qr($result.ids.add($entry.get("_source").get("locationId")))
+#end
+
+#set($last = $from + $result.items.size())
+#if($context.result.hits.total > $last)
+  $util.qr($result.put("nextToken", $last))
+#end
+
+$util.qr($result.put("totalCount", $context.result.hits.total))
+
 $util.toJson($result)

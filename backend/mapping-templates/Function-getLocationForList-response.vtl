@@ -4,6 +4,7 @@
 #end
 
 #set($result = {})
+$util.qr($result.put("totalCount", $ctx.prev.result.totalCount))
 $util.qr($result.put("nextToken",$ctx.prev.result.nextToken))
 $util.qr($result.put("items", $ctx.result.data.devRestaurantReviews))
 $util.toJson($result)
