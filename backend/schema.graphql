@@ -55,11 +55,13 @@ type UserPagingConnection {
 }
 
 type LocationPagingConnection {
+    totalCount: Int
     items: [Location]
     nextToken: String
 }
 
 type ReviewPagingConnection {
+    totalCount: Int
     items: [Review]
     nextToken: String
 }
@@ -89,16 +91,21 @@ input ReviewInput {
     rating: Int
 }
 
+input UserInput {
+    name: String
+}
+
 type Query {
     me: User!
     getLocation(locationId: ID!): Location
-    findLocation(byGPS: GPSQueryInput, byAddress: AddressInput, paging: PagingRequest): LocationPagingConnection
+    findLocation(byGPS: GPSQueryInput, byAddress: AddressInput, query: String, paging: PagingRequest): LocationPagingConnection
 }
 
 type Mutation {
     addLocation(location: LocationInput!): Location
     addReview(locationId: ID!, review: ReviewInput!): Review
     markFavorite(locationId: ID!): Location
+    updateUser(userInfo: UserInput!): User!
 }
 
 type Subscription {

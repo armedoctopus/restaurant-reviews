@@ -15,6 +15,10 @@
   }))
 #end
 
+#if (! $util.isNull($context.args.query))
+  $util.qr($query.bool.must.add({ "match": { "name": "$context.args.query" } }))
+#end
+
 #if (! $util.isNull($context.args.byAddress ))
   #if (! $util.isNull($context.args.byAddress.street ))
     $util.qr($query.bool.must.add({ "match": { "address.street": "$context.args.byAddress.street" } }))

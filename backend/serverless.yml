@@ -115,6 +115,11 @@ custom:
         functions:
           - getLocation
           - storeFavorite
+      - type: Mutation
+        field: updateUser
+        dataSource: DynamoDB
+        request: Mutation-updateUser-request.vtl
+        response: common-response.vtl
       - type: Query
         field: me
         dataSource: DynamoDB
@@ -139,12 +144,12 @@ custom:
         field: favoriteCount
         dataSource: ElasticSearch
         request: Location-favoriteCount-request.vtl
-        response: Location-favoriteCount-response.vtl
+        response: count-response.vtl
       - type: Location
         field: reviews
         dataSource: DynamoDB
         request: Location-reviews-request.vtl
-        response: paginated-list-response.vtl
+        response: dynamodb-paged-response.vtl
       - type: Review
         field: user
         dataSource: DynamoDB
@@ -157,14 +162,14 @@ custom:
         response: common-response.vtl
       - type: User
         field: locations
-        dataSource: DynamoDB
+        dataSource: ElasticSearch
         request: User-locations-request.vtl
-        response: paginated-list-response.vtl
+        response: elasticsearch-paged-response.vtl
       - type: User
         field: reviews
-        dataSource: DynamoDB
+        dataSource: ElasticSearch
         request: User-reviews-request.vtl
-        response: paginated-list-response.vtl
+        response: elasticsearch-paged-response.vtl
       - type: User
         field: favorites
         request: User-favorites-request.vtl

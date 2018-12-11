@@ -1,21 +1,30 @@
+#set($query = {
+  "bool": {
+    "must": [
+      { "match": { "typeName": "LOCATION" } },
+      { "match": { "owner": "$context.identity.username" }}
+  	]
+  }
+})
+
+#if (! $util.isNull($context.args.paging))
+  #set($Integer = 0)
+  #set($from = $util.defaultIfNull($Integer.parseInt($context.args.paging.nextToken), 0))
+  #set($size = $util.defaultIfNull($context.args.paging.limit, 20))
+#else
+  #set($from = 0)
+  #set($size = 20)
+#end
+
 {
-    "version" : "2018-05-29",
-    "operation" : "Query",
-    "query" : {
-        "expression": "typeName = :typeName",
-        "expressionValues" : {
-            ":typeName" : $util.dynamodb.toDynamoDBJson("LOCATION"),
-        }
-    },
-    "filter": {
-     	"expression": "#owner = :owner",
-        "expressionNames": {
-          	"#owner": "owner"
-        },
-        "expressionValues": {
-          	":owner": $util.dynamodb.toDynamoDBJson($context.identity.username)
-        }
-    },
-    "limit": $util.defaultIfNull(${ctx.args.paging.limit}, 20),
-    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.paging.nextToken, null))
+  "version":"2017-02-28",
+  "operation":"GET",
+  "path":"/_search",
+  "params":{
+    "body": {
+      "from": $util.toJson($from),
+      "size": $util.toJson($size),
+      "query": $util.toJson($query)
+    }
+  }
 }
