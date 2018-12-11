@@ -2,6 +2,7 @@ import { AppLoading, Font } from 'expo';
 import * as React from 'react';
 import { Platform, StatusBar, View } from 'react-native';
 import { createAppContainer, createBottomTabNavigator, createStackNavigator, createSwitchNavigator } from 'react-navigation';
+import Colors from './constants/Colors';
 
 import TabBarIcon from './components/TabBarIcon';
 import NearbyScreen from './screens/NearbyScreen';
@@ -35,12 +36,30 @@ function createNavigation(title: string, icon: string, screens: object) {
     return stack;
 }
 
+const routeConfigs = {
+    HomeStack: createNavigation('Nearby', 'compass', { NearbyScreen }),
+    SearchStack: createNavigation('Search', 'search', { SearchScreen }),
+    UserStack: createNavigation('Me', 'contact', { UserScreen })
+};
+
+const bottomNavigatorConfig = {
+    initialRouteName: 'UserStack',
+    tabBarOptions: {
+        activeBackgroundColor: Colors.palette.primary[2],
+        activeTintColor: 'white',
+        inactiveBackgroundColor: Colors.palette.primary[2],
+        inactiveTintColor: Colors.palette.secondary[0],
+        showIcon: true,
+        showLabel: true,
+        style: {
+            borderTopColor: Colors.palette.primary[4],
+            borderTopWidth: '1px'
+        }
+    }
+};
+
 const AppNavigator = createSwitchNavigator({
-    Main: createBottomTabNavigator({
-        HomeStack: createNavigation('Nearby', 'compass', { NearbyScreen }),
-        SearchStack: createNavigation('Search', 'search', { SearchScreen }),
-        UserStack: createNavigation('Me', 'contact', { UserScreen })
-    })
+    Main: createBottomTabNavigator(routeConfigs, bottomNavigatorConfig)
 });
 
 class App extends React.Component<IAppProps,IAppState> {
