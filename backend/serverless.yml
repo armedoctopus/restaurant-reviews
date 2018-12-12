@@ -39,6 +39,16 @@ functions:
       ES_ENDPOINT: { Fn::GetAtt: [ ElasticSearchDomain, DomainEndpoint ]}
       ES_INDEX: ${self:custom.api}
       DEBUG: 1
+  profilePictureResolver:
+    handler: graphql.profilePictureResolver
+    name: ${self:custom.api}-profilePictureResolver
+    description: AppSync Resolver for User.profilePicture
+    runtime: nodejs8.10
+    role: AWSAppSyncS3LambdaIAMRole
+    environment:
+      S3_BUCKET: { Fn::GetAtt: [ FileStorage, Arn ]}
+      S3_URL: { Fn::GetAtt: [ FileStorage, WebsiteURL ]}
+
 
 custom:
   # The base name of the API for resource generation - can't include dashes
@@ -96,6 +106,17 @@ custom:
                 - "es:ESHttpGet"
               Resource:
                 - { Fn::Join: [ "", [ { Fn::GetAtt: [ ElasticSearchDomain, DomainArn ]}, "/*" ]]}
+      - type: AWS_LAMBDA
+        name: ProfilePictures
+        description: Lambda function for the ProfilePictures
+        config:
+          lambdaFunctionArn: { Fn::GetAtt: [ ProfilePictureResolverLambdaFunction, Arn ]}
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - "lambda:invokeFunction"
+              Resource:
+                - { Fn::GetAtt: [ ProfilePictureResolverLambdaFunction, Arn ]}
     mappingTemplates:
       - type: Mutation
         field: addLocation
@@ -122,9 +143,12 @@ custom:
         response: common-response.vtl
       - type: Query
         field: me
-        dataSource: DynamoDB
         request: Query-me-request.vtl
-        response: Query-me-response.vtl
+        response: common-response.vtl
+        kind: PIPELINE
+        functions:
+          - getUserById
+          - getProfilePictureForId
       - type: Query
         field: getLocation
         dataSource: DynamoDB
@@ -152,9 +176,12 @@ custom:
         response: dynamodb-paged-response.vtl
       - type: Review
         field: user
-        dataSource: DynamoDB
         request: Review-user-request.vtl
-        response: Query-me-response.vtl
+        response: common-response.vtl
+        kind: PIPELINE
+        functions:
+          - getUserById
+          - getProfilePictureForId
       - type: Review
         field: location
         dataSource: DynamoDB
@@ -195,6 +222,14 @@ custom:
         name: getLocationForList
         request: Function-getLocationForList-request.vtl
         response: Function-getLocationForList-response.vtl
+      - dataSource: DynamoDB
+        name: getUserById
+        request: Function-getUserById-request.vtl
+        response: Function-getUserById-response.vtl
+      - dataSource: ProfilePictures
+        name: getProfilePictureForId
+        request: Function-getProfilePictureForId-request.vtl
+        response: Function-getProfilePictureForId-response.vtl
 
 resources:
   Resources:
@@ -248,6 +283,25 @@ resources:
                 ForAnyValue:StringLike:
                   "cognito-identity.amazon.com:amr": "authenticated"
         Policies:
+          - PolicyName: AllowProfilePictureDownload
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "s3:GetObject"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::GetAtt: [ FileStorage, Arn ]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ FileStorage, Arn ]}, "*" ]]}
+          - PolicyName: AllowProfilePictureUpload
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "s3:PutObject"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ FileStorage, Arn ]}, "profilePictures/*" ]]}
           - PolicyName: AllowAuthenticatedAppSyncAccess
             PolicyDocument:
               Version: "2012-10-17"
@@ -256,7 +310,7 @@ resources:
                     - "appsync:GraphQL"
                   Effect: Allow
                   Resource:
-                    - { Fn::Join: [ "/", [ { Fn::GetAtt: [ GraphQlApi, Arn ]}, "*" ]]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "*" ]]}
 
     UnauthRole:
       Type: AWS::IAM::Role
@@ -273,6 +327,16 @@ resources:
                 ForAnyValue:StringLike:
                   "cognito-identity.amazon.com:amr": "unauthenticated"
         Policies:
+          - PolicyName: AllowProfilePictureDownload
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "s3:GetObject"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::GetAtt: [ FileStorage, Arn ]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ FileStorage, Arn ]}, "*" ]]}
           - PolicyName: AllowUnauthenticatedAppSyncQueries
             PolicyDocument:
               Version: "2012-10-17"
@@ -281,7 +345,7 @@ resources:
                     - "appsync:GraphQL"
                   Effect: Allow
                   Resource:
-                    - { Fn::Join: [ "/", [ { Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Query/*" ]]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Query/*" ]]}
 
     IdentityPool:
       Type: AWS::Cognito::IdentityPool
@@ -343,6 +407,24 @@ resources:
           VolumeType: "gp2"
           VolumeSize: ${self:custom.es_ebsVolumeGB}
 
+    FileStorage:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+              MaxAge: 3000
+        WebsiteConfiguration:
+            IndexDocument: index.html
+            ErrorDocument: error.html
+
     # -------------------------------------------------------------------------
     # END: DATA STORAGE
     # -------------------------------------------------------------------------
@@ -386,6 +468,40 @@ resources:
                   Effect: Allow
                   Resource:
                     - { Fn::GetAtt: [ DynamoDBTable, StreamArn ]}
+          - PolicyName: CloudWatchLogsAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Effect: Allow
+                  Resource:
+                    - "arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:*"
+
+    AWSAppSyncS3LambdaIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.api}-AWSAppSyncS3LambdaIAMRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "lambda.amazonaws.com"
+              Action: "sts:AssumeRole"
+        Policies:
+          - PolicyName: S3Access
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - "s3:GetObject"
+                  Effect: Allow
+                  Resource:
+                    - { Fn::GetAtt: [ FileStorage, Arn ]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ FileStorage, Arn ]}, "*" ]]}
           - PolicyName: CloudWatchLogsAccess
             PolicyDocument:
               Version: "2012-10-17"
