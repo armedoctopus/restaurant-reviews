@@ -410,7 +410,6 @@ resources:
     FileStorage:
       Type: AWS::S3::Bucket
       Properties:
-        AccessControl: PublicRead
         CorsConfiguration:
           CorsRules:
             - AllowedOrigins:
@@ -421,9 +420,6 @@ resources:
                 - GET
                 - PUT
               MaxAge: 3000
-        WebsiteConfiguration:
-            IndexDocument: index.html
-            ErrorDocument: error.html
 
     # -------------------------------------------------------------------------
     # END: DATA STORAGE
