@@ -21,6 +21,9 @@ exports.profilePictureResolver = (event, context, callback) => {
     ** Pre-sign a getObject synchronously
     */
     const response = {
+        bucket: params.Bucket,
+        key: params.Key,
+        region: process.env.AWS_REGION,
         url: s3.getSignedUrl('getObject', params)
     };
 

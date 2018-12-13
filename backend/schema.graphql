@@ -3,8 +3,11 @@ input PagingRequest {
     nextToken: String
 }
 
-type S3File {
-    url: AWSURL,
+type S3Object {
+    bucket: String
+    key: String
+    region: String
+    url: AWSURL
     uploadUrl: AWSURL
 }
 
@@ -12,7 +15,7 @@ type User {
     id: ID!
     lastUpdated: AWSDateTime
     name: String
-    profilePicture: S3File
+    profilePicture: S3Object
     locations(paging: PagingRequest): LocationPagingConnection
     reviews(paging: PagingRequest): ReviewPagingConnection
     favorites(paging: PagingRequest): LocationPagingConnection
