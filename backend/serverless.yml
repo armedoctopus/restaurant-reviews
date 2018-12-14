@@ -258,7 +258,7 @@ resources:
       Type: AWS::Cognito::UserPoolClient
       Properties:
         ClientName: ${self:custom.api}-react-native
-        GenerateSecret: true
+        GenerateSecret: false
         UserPoolId: { Ref: CognitoUserPoolUsers }
 
     WebUserPoolClient:
