@@ -88,6 +88,7 @@ class App extends React.Component<IAppProps,IAppState> {
 
     private loadResourcesAsync = async(): Promise<void> => {
         return Font.loadAsync({
+            'Material Icons': require('../node_modules/@expo/vector-icons/fonts/MaterialIcons.ttf'),
             'space-mono': require('../assets/fonts/SpaceMono-Regular.ttf')
         });
     }
