@@ -158,7 +158,7 @@ custom:
         field: findLocation
         dataSource: ElasticSearch
         request: Query-findLocation-request.vtl
-        response: Query-findLocation-response.vtl
+        response: elasticsearch-paged-response.vtl
       - type: Location
         field: averageRating
         dataSource: ElasticSearch
