@@ -281,7 +281,7 @@ resources:
               Action: sts:AssumeRoleWithWebIdentity
               Condition:
                 ForAnyValue:StringLike:
-                  "cognito-identity.amazon.com:amr": "authenticated"
+                  "cognito-identity.amazonaws.com:amr": "authenticated"
         Policies:
           - PolicyName: AllowProfilePictureDownload
             PolicyDocument:
@@ -325,7 +325,7 @@ resources:
               Action: sts:AssumeRoleWithWebIdentity
               Condition:
                 ForAnyValue:StringLike:
-                  "cognito-identity.amazon.com:amr": "unauthenticated"
+                  "cognito-identity.amazonaws.com:amr": "unauthenticated"
         Policies:
           - PolicyName: AllowProfilePictureDownload
             PolicyDocument:
@@ -345,7 +345,13 @@ resources:
                     - "appsync:GraphQL"
                   Effect: Allow
                   Resource:
-                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Query/*" ]]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "*" ]]}
+                - Action:
+                    - "appsync:GraphQL"
+                  Effect: Deny
+                  Resource:
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Query/me" ]]}
+                    - { Fn::Join: [ "/", [{ Fn::GetAtt: [ GraphQlApi, Arn ]}, "types/Mutation/*" ]]}
 
     IdentityPool:
       Type: AWS::Cognito::IdentityPool

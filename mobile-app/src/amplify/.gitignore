@@ -1,1 +1,3 @@
-aws-exports.*
+// Generated Files
+aws-exports.ts
+appsync.ts
