@@ -1,8 +1,6 @@
-import Auth from '@aws-amplify/auth';
+import Amplify from 'aws-amplify';
 import configuration from './aws-exports';
 
 export function configure() {
-    // tslint:disable-next-line:no-console
-    console.debug(`Loading Amplify config: ${JSON.stringify(configuration)}`);
-    Auth.configure(configuration);
+    Amplify.configure(configuration);
 }
