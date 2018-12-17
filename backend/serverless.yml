@@ -69,8 +69,8 @@ custom:
 
   # AWS Amplify configuration
   amplify:
-    - filename: ../mobile-app/src/amplify/aws-exports.js
-      type: javascript
+    - filename: ../mobile-app/src/amplify/aws-exports.ts
+      type: typescript
       appClient: ReactNativeUserPoolClient
 
   # AWS AppSync GraphQL configuration
