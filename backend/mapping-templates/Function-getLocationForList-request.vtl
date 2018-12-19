@@ -1,3 +1,11 @@
+#if($ctx.prev.result.ids.size() == 0) 
+  #set($result = {})
+  $util.qr($result.put("totalCount", $ctx.prev.result.totalCount))
+  $util.qr($result.put("nextToken",$ctx.prev.result.nextToken))
+  $util.qr($result.put("items", $ctx.prev.result.ids))
+  #return($result)
+#end
+
 #set($keys = [])
 #foreach($id in ${ctx.prev.result.ids})
 	#set($key = {})

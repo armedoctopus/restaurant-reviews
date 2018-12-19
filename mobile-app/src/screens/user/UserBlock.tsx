@@ -2,11 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { API, graphqlOperation } from 'aws-amplify';
 import { Connect } from 'aws-amplify-react-native';
 import * as React from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import Colors from '../../constants/Colors';
-import { ConsoleLogger } from '@aws-amplify/core';
 
 const styles = StyleSheet.create({
+    info: {
+        color: 'white',
+        fontSize: 12
+    } as TextStyle,
+    infoBlock: {
+        marginLeft: 4,
+        marginRight: 4
+    } as ViewStyle,
     innerProfile: {
         height: '100%',
         width: '30%'
@@ -47,15 +54,20 @@ const styles = StyleSheet.create({
         width: '100%'
     } as ViewStyle,
     statsBlock: {
+        alignItems: 'flex-start',
+        flex: 1,
+        flexDirection: 'row',
         height: '50%',
+        justifyContent: 'flex-start',
         width: '100%'
     } as ViewStyle
 });
 
 interface IUserBlockProps {
-    loading?: boolean;
-    errors?: string[];
-    name?: string | null;
+    name: string | null;
+    nLocations: number;
+    nReviews: number;
+    nFavorites: number;
     updateName?: (name: string) => Promise<boolean>;
 }
 
@@ -69,22 +81,6 @@ class UserBlock extends React.Component<IUserBlockProps, IUserBlockState> {
     };
 
     public render() {
-        if (this.props.loading) {
-            return (
-                <View style={styles.outerCentered}>
-                    <ActivityIndicator size="large" color={Colors.palette.tertiary[2]}/>
-                </View>
-            );
-        }
-
-        if (this.props.errors && this.props.errors.length > 0) {
-            return (
-                <View style={styles.outerCentered}>
-                    <Ionicons name="md-bug" size={48} color={Colors.palette.tertiary[2]}/>
-                </View>
-            );
-        }
-
         return (
             <View style={styles.outer}>
                 <View style={styles.innerProfile}>
@@ -112,6 +108,24 @@ class UserBlock extends React.Component<IUserBlockProps, IUserBlockState> {
                         />
                     </View>
                     <View style={styles.statsBlock}>
+                        <View style={styles.infoBlock}>
+                            <Ionicons name="md-compass" size={12} color="white"/>
+                        </View>
+                        <View style={styles.infoBlock}>
+                            <Text style={styles.info}>{this.props.nLocations}</Text>
+                        </View>
+                        <View style={styles.infoBlock}>
+                            <Ionicons name="md-create" size={12} color="white"/>
+                        </View>
+                        <View style={styles.infoBlock}>
+                            <Text style={styles.info}>{this.props.nReviews}</Text>
+                        </View>
+                        <View style={styles.infoBlock}>
+                            <Ionicons name="md-bookmark" size={12} color="white"/>
+                        </View>
+                        <View style={styles.infoBlock}>
+                            <Text style={styles.info}>{this.props.nFavorites}</Text>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -138,6 +152,9 @@ interface IUserBlockQueryResponse {
         me: {
             id: string;
             name: string | null;
+            locations: { totalCount: number; };
+            reviews: { totalCount: number; };
+            favorites: { totalCount: number; };
         }
     };
     errors?: string[];
@@ -145,7 +162,13 @@ interface IUserBlockQueryResponse {
 
 const UserBlockFunction = () => {
     const query = `{
-        me { id name }
+        me {
+            id
+            name
+            locations { totalCount }
+            reviews { totalCount }
+            favorites { totalCount }
+        }
     }`;
 
     const updateNameMutation = async(name: string): Promise<boolean> => {
@@ -161,12 +184,28 @@ const UserBlockFunction = () => {
     return (
         <Connect query={graphqlOperation(query)}>
             {(response: IUserBlockQueryResponse) => {
+                console.log('query response:', response);
                 if (response.loading) {
-                    return (<UserBlock loading={response.loading}/>);
+                    return (
+                        <View style={styles.outerCentered}>
+                            <ActivityIndicator size="large" color={Colors.palette.tertiary[2]}/>
+                        </View>
+                    );
                 } else if (response.data && response.data.me) {
-                    return (<UserBlock key={response.data.me.id} name={response.data.me.name} updateName={updateNameMutation}/>);
+                    return (<UserBlock
+                        key={response.data.me.id}
+                        name={response.data.me.name}
+                        nLocations={response.data.me.locations.totalCount}
+                        nReviews={response.data.me.reviews.totalCount}
+                        nFavorites={response.data.me.favorites.totalCount}
+                        updateName={updateNameMutation}
+                    />);
                 } else {
-                    return (<UserBlock errors={response.errors}/>);
+                    return (
+                        <View style={styles.outerCentered}>
+                            <Ionicons name="md-bug" size={48} color={Colors.palette.tertiary[2]}/>
+                        </View>
+                    );
                 }
             }}
         </Connect>
